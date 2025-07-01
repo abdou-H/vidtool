@@ -1,66 +1,61 @@
 const express = require("express");
 const cors = require("cors");
-const { spawn } = require("child_process");
 const path = require("path");
-const fs = require("fs");
+const { exec } = require("child_process");
+const ffmpeg = require("@ffmpeg-installer/ffmpeg");
 
 const app = express();
-const PORT = 5000;
+
+const ffmpegPath = ffmpeg.path;
+console.log("✅ FFmpeg path:", ffmpegPath);
 
 app.use(cors());
-app.use(express.json());
 app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-let clients = [];
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
 
-app.get("/progress", (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.flushHeaders();
-  clients.push(res);
-
-  req.on("close", () => {
-    clients = clients.filter(client => client !== res);
-  });
+app.get("/", (req, res) => {
+  res.render("index");
 });
 
-function sendProgress(progress) {
-  clients.forEach(res => {
-    res.write(`data: ${progress}\n\n`);
-  });
-}
+app.post("/video", (req, res) => {
+  const { url } = req.body;
 
-app.post("/api/download", async (req, res) => {
-  const { url, format } = req.body;
-  if (!url || !format) return res.status(400).json({ error: "missing data" });
+  if (!url || !url.startsWith("http")) {
+    return res.status(400).send("❌ رابط غير صالح");
+  }
 
-  const output = `media_${Date.now()}.${format}`;
-  const filePath = path.join(__dirname, output);
+  res.render("download", { url });
+});
 
-  const args = format === "mp3" || format === "m4a"
-    ? ["-f", "bestaudio", "--extract-audio", "--audio-format", format, "-o", output, url]
-    : ["-f", "best", "--merge-output-format", format, "-o", output, url];
+app.post("/download", (req, res) => {
+  const { url } = req.body;
 
-  const yt = spawn("yt-dlp", args);
+  if (!url || !url.startsWith("http")) {
+    return res.status(400).send("❌ رابط غير صالح");
+  }
 
-  yt.stdout.on("data", (data) => {
-    const output = data.toString();
-    const match = output.match(/download\s+(\d+\.\d+)%/);
-    if (match) sendProgress(match[1]);
-  });
+  const outputPath = path.join(__dirname, "public", "output.mp4");
+  const command = `${ffmpegPath} -i "${url}" -c copy "${outputPath}"`;
 
-  yt.stderr.on("data", (data) => {
-    console.error("stderr:", data.toString());
-  });
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error("⚠️ FFmpeg Error:", error.message);
+      return res.status(500).send("⚠️ حدث خطأ أثناء معالجة الفيديو");
+    }
 
-  yt.on("close", (code) => {
-    if (code !== 0) return res.status(500).json({ error: "Download failed" });
-    res.download(filePath, output, (err) => {
-      if (err) console.error(err);
-      fs.unlink(filePath, () => {});
+    res.download(outputPath, "video.mp4", (err) => {
+      if (err) {
+        console.error("⚠️ Download Error:", err.message);
+      }
     });
   });
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});

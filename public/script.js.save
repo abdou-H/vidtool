@@ -1,0 +1,49 @@
+async function downloadMedia() {
+  const url = document.getElementById('url').value;
+  const format = document.getElementById('format').value;
+  const status = document.getElementById('status');
+  const bar = document.getElementById('progress-bar');
+  const inner = document.getElementById('progress-inner');
+
+  if (!url) {
+    status.textContent = 'يرجى إدخال رابط صحيح';
+    return;
+  }
+
+  bar.style.display = 'block';
+  inner.style.width = '0%';
+  status.textContent = '📥 جاري التحميل...';
+
+  const evtSource = new EventSource('/progress');
+  evtSource.onmessage = (e) => {
+    inner.style.width = e.data + '%';
+  };
+
+  try {
+    const res = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, format }),
+    });
+
+    evtSource.close();
+    inner.style.width = '100%';
+
+    if (!res.ok) {
+      status.textContent = '⚠️ فشل التحميل';
+      return;
+    }
+
+    const blob = await res.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `media.${format}`;
+    a.click();
+    status.textContent = '✅ تم التحميل!';
+  } catch (err) {
+    evtSource.close();
+    status.textContent = '❌ خطأ أثناء الاتصال بالخادم';
+  }
+}
+

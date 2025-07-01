@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Video Downloader</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+
+      <div class="top-bar">
+        <select id="lang" onchange="onLangSelectChange()">
+          <option value="ar">العربية</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="zh">中文</option>
+          <option value="tr">Türkçe</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+
+      <h1 id="title"></h1>
+
+      <input type="text" id="url" placeholder="" />
+
+      <select id="format">
+        <option value="mp4">MP4</option>
+        <option value="mp3">MP3</option>
+      </select>
+
+      <button onclick="downloadMedia()" id="download-btn"></button>
+
+      <div id="progress-bar">
+        <div id="progress-inner"></div>
+      </div>
+
+      <p id="status"></p>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

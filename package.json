@@ -4,8 +4,7 @@
   "description": "Video Downloader Tool using Node.js and FFmpeg",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "apt-get update && apt-get install -y ffmpeg python3-pip && pip3 install yt-dlp"
+    "start": "node server.js"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
